@@ -1,8 +1,10 @@
 package com.example.signaltestapp
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import org.whispersystems.libsignal.ecc.ECPublicKey
+import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
+import org.drinkless.td.libcore.telegram.Client
+import org.drinkless.td.libcore.telegram.TdApi
 import org.whispersystems.libsignal.util.KeyHelper
 import org.whispersystems.libsignal.util.guava.Optional
 import org.whispersystems.signalservice.api.SignalServiceAccountManager
@@ -13,15 +15,25 @@ import org.whispersystems.signalservice.internal.configuration.SignalServiceConf
 import org.whispersystems.signalservice.internal.configuration.SignalServiceUrl
 import java.io.InputStream
 import java.util.*
-import java.util.concurrent.ExecutorService
+
 
 class MainActivity : AppCompatActivity() {
+
+    val telegramManager = TelegramManager()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val simpleRunnable = Thread(SimpleRunnable())
-        simpleRunnable.start()
+        /*
+        2022-03-01 23:47:56.264 20086-20143/? D/TELEGRAM: Got response constructor: 900822020
+        2022-03-01 23:47:56.264 20086-20143/? D/TELEGRAM: Got response constructor: 1622347490
+         */
+        // create cline
+
+
+//        val simpleRunnable = Thread(SimpleRunnable())
+//        simpleRunnable.start()
     }
 
     class SimpleRunnable: Runnable {
@@ -55,7 +67,7 @@ class MainActivity : AppCompatActivity() {
 
             signalAccountManager.setPreKeys(identityKey.publicKey, signedPreKeyRecord, oneTimePreKeys)
 
-            signalAccountManager.addDevice("ariel_pixel_2", identityKey.publicKey)
+            //signalAccountManager.addDevice("ariel_pixel_2", identityKey.publicKey)
 
             signalAccountManager.requestSmsVerificationCode(true, Optional.absent(), Optional.absent())
 
