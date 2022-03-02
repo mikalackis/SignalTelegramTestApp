@@ -2,9 +2,9 @@ package com.example.signaltestapp
 
 import org.drinkless.td.libcore.telegram.Client
 import org.drinkless.td.libcore.telegram.TdApi
-import org.drinkless.td.libcore.telegram.TdApi.SetTdlibParameters
-import org.drinkless.td.libcore.telegram.TdApi.TdlibParameters
+import org.drinkless.td.libcore.telegram.TdApi.*
 import timber.log.Timber
+
 
 class TelegramManager {
 
@@ -24,7 +24,8 @@ class TelegramManager {
         client = Client.create(UpdateHandler(), null, null)
     }
 
-    private fun onAuthorizationStateUpdated(authState: TdApi.AuthorizationState?) {
+    private fun onAuthorizationStateUpdated(authState: TdApi.AuthorizationState) {
+        Timber.d("Got onAuthStateUpdated: ${authState.javaClass.canonicalName}")
         when(authState.constructor) {
             TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR -> {
                 val parameters = TdlibParameters()
@@ -41,6 +42,45 @@ class TelegramManager {
                     parameters.useTestDc = true
 
                 client.send(SetTdlibParameters(parameters), AuthorizationRequestHandler())
+            }
+            TdApi.AuthorizationStateClosed.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateClosed")
+//                client = Client.create(
+//                    UpdateHandler(),
+//                    null,
+//                    null
+//                ) // recreate client after previous has closed
+            }
+            TdApi.AuthorizationStateClosing.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateClosing")
+            }
+            TdApi.AuthorizationStateLoggingOut.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateLoggingOut")
+            }
+            TdApi.AuthorizationStateReady.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateReady -> authorized")
+            }
+            TdApi.AuthorizationStateWaitCode.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateWaitCode")
+                // TODO pickup the code from the text box
+                val code = "123"
+                client.send(CheckAuthenticationCode(code), AuthorizationRequestHandler())
+            }
+            TdApi.AuthorizationStateWaitEncryptionKey.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateWaitCode")
+                client.send(CheckDatabaseEncryptionKey(), AuthorizationRequestHandler())
+            }
+            TdApi.AuthorizationStateWaitOtherDeviceConfirmation.CONSTRUCTOR -> {
+                TODO()
+            }
+            TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR -> {
+                TODO()
+            }
+            TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR -> {
+                TODO()
+            }
+            TdApi.AuthorizationStateWaitRegistration.CONSTRUCTOR -> {
+                TODO()
             }
         }
     }
