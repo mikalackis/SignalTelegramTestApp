@@ -1,7 +1,7 @@
 package com.example.signaltestapp
 
+import android.content.Context
 import org.drinkless.td.libcore.telegram.Client
-import org.drinkless.td.libcore.telegram.TdApi
 import org.drinkless.td.libcore.telegram.TdApi.*
 import timber.log.Timber
 
@@ -20,16 +20,28 @@ class TelegramManager {
 
     lateinit var client: Client
 
-    fun initClient() {
+    lateinit var context: Context
+
+    lateinit var phoneNumber: String
+
+    private val defaultHandler = DefaultHandler()
+
+    fun initClient(context: Context, phoneNumber: String) {
+        this.context = context
+        this.phoneNumber = phoneNumber
         client = Client.create(UpdateHandler(), null, null)
     }
 
-    private fun onAuthorizationStateUpdated(authState: TdApi.AuthorizationState) {
-        Timber.d("Got onAuthStateUpdated: ${authState.javaClass.canonicalName}")
-        when(authState.constructor) {
-            TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR -> {
+    fun createSecretChat(chatId: Int) {
+        client.send(CreateSecretChat(chatId), defaultHandler)
+    }
+
+    private fun onAuthorizationStateUpdated(authState: AuthorizationState?) {
+        Timber.d("Got onAuthStateUpdated: ${authState?.javaClass?.canonicalName}")
+        when(authState?.constructor) {
+            AuthorizationStateWaitTdlibParameters.CONSTRUCTOR -> {
                 val parameters = TdlibParameters()
-                parameters.databaseDirectory = "tdlib"
+                parameters.databaseDirectory = context.filesDir.absolutePath
                 parameters.useMessageDatabase = true
                 parameters.useSecretChats = true
                 parameters.apiId = 94575
@@ -43,7 +55,7 @@ class TelegramManager {
 
                 client.send(SetTdlibParameters(parameters), AuthorizationRequestHandler())
             }
-            TdApi.AuthorizationStateClosed.CONSTRUCTOR -> {
+            AuthorizationStateClosed.CONSTRUCTOR -> {
                 Timber.d("AuthorizationStateClosed")
 //                client = Client.create(
 //                    UpdateHandler(),
@@ -51,48 +63,52 @@ class TelegramManager {
 //                    null
 //                ) // recreate client after previous has closed
             }
-            TdApi.AuthorizationStateClosing.CONSTRUCTOR -> {
+            AuthorizationStateClosing.CONSTRUCTOR -> {
                 Timber.d("AuthorizationStateClosing")
             }
-            TdApi.AuthorizationStateLoggingOut.CONSTRUCTOR -> {
+            AuthorizationStateLoggingOut.CONSTRUCTOR -> {
                 Timber.d("AuthorizationStateLoggingOut")
             }
-            TdApi.AuthorizationStateReady.CONSTRUCTOR -> {
+            AuthorizationStateReady.CONSTRUCTOR -> {
                 Timber.d("AuthorizationStateReady -> authorized")
             }
-            TdApi.AuthorizationStateWaitCode.CONSTRUCTOR -> {
+            AuthorizationStateWaitCode.CONSTRUCTOR -> {
                 Timber.d("AuthorizationStateWaitCode")
                 // TODO pickup the code from the text box
                 val code = "123"
                 client.send(CheckAuthenticationCode(code), AuthorizationRequestHandler())
             }
-            TdApi.AuthorizationStateWaitEncryptionKey.CONSTRUCTOR -> {
+            AuthorizationStateWaitEncryptionKey.CONSTRUCTOR -> {
                 Timber.d("AuthorizationStateWaitCode")
                 client.send(CheckDatabaseEncryptionKey(), AuthorizationRequestHandler())
             }
-            TdApi.AuthorizationStateWaitOtherDeviceConfirmation.CONSTRUCTOR -> {
-                TODO()
+            AuthorizationStateWaitOtherDeviceConfirmation.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateWaitOtherDeviceConfirmation -> confirm link on another device")
             }
-            TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR -> {
-                TODO()
+            AuthorizationStateWaitPassword.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateWaitPassword -> please enter password")
             }
-            TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR -> {
-                TODO()
+            AuthorizationStateWaitPhoneNumber.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateWaitPhoneNumber -> please enter phone number")
+                client.send(
+                    SetAuthenticationPhoneNumber(phoneNumber, null),
+                    AuthorizationRequestHandler()
+                )
             }
-            TdApi.AuthorizationStateWaitRegistration.CONSTRUCTOR -> {
-                TODO()
+            AuthorizationStateWaitRegistration.CONSTRUCTOR -> {
+                Timber.d("AuthorizationStateWaitRegistration -> please enter first and last name")
             }
         }
     }
 
     inner class AuthorizationRequestHandler: Client.ResultHandler {
-        override fun onResult(result: TdApi.Object) {
+        override fun onResult(result: Object) {
             when(result.constructor) {
-                TdApi.Error.CONSTRUCTOR -> {
+                Error.CONSTRUCTOR -> {
                     Timber.d("Authorization error")
                     onAuthorizationStateUpdated(null); // repeat last action
                 }
-                TdApi.Ok.CONSTRUCTOR -> {
+                Ok.CONSTRUCTOR -> {
                     Timber.d("Authorization OK")
                 }
                 else -> {
@@ -103,18 +119,24 @@ class TelegramManager {
 
     }
 
-    inner class UpdateHandler(): Client.ResultHandler {
-        override fun onResult(response: TdApi.Object) {
+    inner class UpdateHandler: Client.ResultHandler {
+        override fun onResult(response: Object) {
             Timber.d("Got UpdateHandler response: ${response.javaClass.canonicalName}")
             when(response.constructor) {
-                TdApi.UpdateAuthorizationState.CONSTRUCTOR -> {
-
+                UpdateAuthorizationState.CONSTRUCTOR -> {
+                    onAuthorizationStateUpdated((response as UpdateAuthorizationState).authorizationState)
                 }
                 else -> {
 
                 }
             }
 
+        }
+    }
+
+    inner class DefaultHandler: Client.ResultHandler {
+        override fun onResult(result: Object?) {
+            Timber.d("DefaultHandler response: ${result.toString()}")
         }
     }
 

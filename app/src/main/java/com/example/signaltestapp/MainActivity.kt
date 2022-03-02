@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
 //        val simpleRunnable = Thread(SimpleRunnable())
 //        simpleRunnable.start()
+        telegramManager.initClient(this, "+381652470801")
     }
 
     class SimpleRunnable: Runnable {
